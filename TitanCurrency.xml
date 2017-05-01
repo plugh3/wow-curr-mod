@@ -70,26 +70,26 @@
 					</Button>
 					<Button name="$parentGoldButton" inherits="TitanPanelChildButtonTemplate">
 						<Size>
-							<AbsDimension x="32" y="13"/>
+							<AbsDimension x="32" y="16"/>
 						</Size>
 						<Anchors>
 							<Anchor point="RIGHT" relativeTo="$parentSilverButton" relativePoint="LEFT">
 								<Offset>
-									<AbsDimension x="-4" y="0"/>
+									<AbsDimension x="-4" y="-1"/>
 								</Offset>
 							</Anchor>
 						</Anchors>
 
 						<NormalTexture file="Interface\MoneyFrame\UI-MoneyIcons">
 							<Size>
-								<AbsDimension x="13" y="13"/>
+								<AbsDimension x="16" y="16"/>
 							</Size>
 							<Anchors>
 								<Anchor point="RIGHT"/>
 							</Anchors>
 							<TexCoords left="0" right="0.25" top="0" bottom="1"/>
 						</NormalTexture>
-						<ButtonText name="$parentText" inherits="GameFontHighlightSmall" justifyH="LEFT">
+						<ButtonText name="$parentText" inherits="GameFontHighlightSmall" justifyH="RIGHT">
 							<Anchors>
 								<Anchor point="LEFT"/>
 							</Anchors>
