@@ -76,7 +76,7 @@ end
 
 -- **************************************************************************
 -- NAME : TitanPanelCurrencyButton_OnLoad()
--- DESC : Initialization (register with TitanPanel, register WOW events)
+-- DESC : Register with WOW events + TitanPanel
 -- **************************************************************************
 function TitanPanelCurrencyButton_OnLoad(self)
     -- register with TitanPanel
@@ -93,7 +93,8 @@ function TitanPanelCurrencyButton_OnLoad(self)
 			DisplayOnRightSide = true,
 		},
 		savedVariables = {
-			DisplayOnRightSide = false,             
+			DisplayOnRightSide = false,  
+			SelectedCurrency = "Gold",
 		},
     };
 
@@ -101,10 +102,7 @@ function TitanPanelCurrencyButton_OnLoad(self)
     self:RegisterEvent("VARIABLES_LOADED");
     self:RegisterEvent("PLAYER_ENTERING_WORLD");
     self:RegisterEvent("PLAYER_MONEY");
-    self:RegisterEvent("CURRENCY_DISPLAY_UPDATE");
-
-	-- init display
-	--TitanPanelCurrencyButton_UpdateButtonText();    
+    self:RegisterEvent("CURRENCY_DISPLAY_UPDATE");   
 end
 
 -- **************************************************************************
@@ -113,7 +111,7 @@ end
 -- CALL : Called by WOW
 -- **************************************************************************
 function TitanCurrency_OnEvent(self, event, ...)
-	pp(">>> Currency event - "..event);
+	--pp(">>> Currency event - "..event);
 
 	if (event == "VARIABLES_LOADED") then
 		CURRENCY_VARIABLES_LOADED = true;
@@ -144,12 +142,13 @@ end
  
 -- *******************************************************************************************
 -- NAME: TitanPanelCurrencyButton_UpdateButtonText()
--- DESC: Updates button text, what is always visible in Titan bar.  Originally built as a
---       MoneyFrame, so we retrofit into that.
+-- DESC: Updates button text, what is always visible in Titan bar.  
+-- HIST: Originally built as a MoneyFrame, so we retrofit into that.
 -- *******************************************************************************************
 function TitanPanelCurrencyButton_UpdateButtonText()
-	pp(">>>CurrencyButton_UpdateButtonText() - "..CURRENCY_SELECTED_NAME);
-
+	local selected = TitanGetVar(TITAN_CURRENCY_ID, "SelectedCurrency");
+	--pp(">>>CurrencyButton_UpdateButtonText() - "..selected);
+	
 	-- old: show money
 	MoneyFrame_Update("TitanPanelCurrencyButton", TitanPanelCurrencyButton_GetGold());
 	-- hide copper + silver
@@ -157,37 +156,36 @@ function TitanPanelCurrencyButton_UpdateButtonText()
 	_G["TitanPanelCurrencyButtonSilverButton"]:Hide();
 	-- override gold
 	if (CURRENCY_INITIALIZED) then
-		TitanPanelCurrencyButton_FetchCurrencyQtys();
-		local data = CURRENCY_DATA[CURRENCY_SELECTED_NAME];
+		-- reload CURRENCY_DATA{}
+		TitanPanelCurrencyButton_GetCurrencyData();
+		
+		-- update button
+		local data = CURRENCY_DATA[selected];
 		_G["TitanPanelCurrencyButtonGoldButton"]:SetText(data.qty);	
 		_G["TitanPanelCurrencyButtonGoldButton"]:SetNormalTexture(data.icon);
 
-		-- debug
+		-- retrofit MoneyFrame
 		local texture = _G["TitanPanelCurrencyButtonGoldButton"]:GetNormalTexture();
-		if (CURRENCY_SELECTED_NAME == "Gold") then
+		if (selected == "Gold") then
 			texture:SetTexCoord(0,0.25,0,1);
 		else
 			texture:SetTexCoord(0,1,0,1);
 		end	
-			
 
-		-- e.g. <0,0>, <0,1>, <0.25,0>, <0.25,1>
-		-- Texture:GetTexCoord()
-		-- local tGold = _G["TitanPanelCurrencyButtonGoldButton"]:GetNormalTexture();
-		local a, b, c, d, e, f, g, h = texture:GetTexCoord();
-		local ret = "";
-		ret	= ">>> texture coords:";
-		ret = ret.." ";
-		ret = ret.."<"..a..","..b..">";
-		ret = ret.." ";
-		ret = ret.."<"..c..","..d..">";
-		ret = ret.." ";
-		ret = ret.."<"..e..","..f..">";
-		ret = ret.." ";
-		ret = ret.."<"..g..","..h..">";
-		pp(ret);
-
-
+		-- debug SetTexCoord()
+		-- -- e.g. <0,0>, <0,1>, <0.25,0>, <0.25,1>
+		-- local a, b, c, d, e, f, g, h = texture:GetTexCoord();
+		-- local ret = "";
+		-- ret	= ">>> texture coords:";
+		-- ret = ret.." ";
+		-- ret = ret.."<"..a..","..b..">";
+		-- ret = ret.." ";
+		-- ret = ret.."<"..c..","..d..">";
+		-- ret = ret.." ";
+		-- ret = ret.."<"..e..","..f..">";
+		-- ret = ret.." ";
+		-- ret = ret.."<"..g..","..h..">";
+		-- pp(ret);
 	end
 end
 
@@ -199,11 +197,11 @@ end
 
 
 -- *******************************************************************************************
--- NAME: TitanPanelCurrencyButton_FetchCurrencyQtys()
+-- NAME: TitanPanelCurrencyButton_GetCurrencyData()
 -- DESC: Refreshes currency amounts and info from system.  Populates CURRENCY_DATA{}
 -- *******************************************************************************************
-function TitanPanelCurrencyButton_FetchCurrencyQtys()
-	pp(">>>CurrencyButton_FetchCurrencyQtys()");
+function TitanPanelCurrencyButton_GetCurrencyData()
+	--pp(">>>CurrencyButton_FetchCurrencyQtys()");
 	local data = {};
 	
 	-- for gold
@@ -233,47 +231,6 @@ function Highlight(text)
 	return "|c"..color..text.."|r";
 end
 
--- function TitanPanelCurrencyButton_GetTooltipText0()
-   -- pp(">>>CurrencyButton_GetTooltipText0()");
-   -- local tooltip = "";
-
-   -- -- gold
-   -- local name = "Gold";
-   -- local amount = comma(floor(GetMoney("player")/10000));
-   -- local icon = CURRENCY_ICON_GOLD1;
-   -- local texture = "|T"..icon..":14:14:0:0:64:16:0:16:0:16|t"; --crops 64x16 img to <0-16,0-16>
-   -- --pp(">>> texture >"..texture.."<");
-   -- local line = name.."--\t"..amount.." "..texture;
-   -- tooltip = tooltip..line.."\n";
-
-   -- -- other currencies
-   -- for index=1, GetCurrencyListSize() do 
-      -- local name, isHeader, isExpanded, isUnused, isWatched, count, icon, maximum, hasWeeklyLimit, currentWeeklyAmount, unknown = GetCurrencyListInfo(index)
-      -- if (count ~= 0) and (not isUnused) and (not CURRENCY_IGNORE[name]) then
-		-- local line = "";
-		
-		-- -- label + amount
-		-- if (name == CURRENCY_SELECTED_NAME) then 
-			-- -- highlight selected
-			-- line = line..Highlight(name).."--".."\t"..Highlight(comma(count));
-		-- else
-			-- line = line..name.."--".."\t"..comma(count);
-		-- end
-
-		-- -- icon
-		-- if icon~=nil then 
-			-- line = line.." |T"..icon..":14|t";
-		-- else pp(">> GetTooltipText(): nil icon for >"..name.."< !!!");
-		-- end
-
-		-- --local line2, k = string.gsub(line, '|', '!');
-		-- --pp(line2)
-		-- tooltip = tooltip..line.."\n";
-      -- end
-	-- end    
-   
-   -- return tooltip;    
--- end
 
 -- *******************************************************************************************
 -- NAME: TitanPanelCurrencyButton_GetTooltipText()
@@ -281,7 +238,7 @@ end
 -- CALL: Called by TitanPanel registry hook
 -- *******************************************************************************************
 function TitanPanelCurrencyButton_GetTooltipText()
-	pp(">>>CurrencyButton_GetTooltipText()");
+	--pp(">>>CurrencyButton_GetTooltipText()");
 	local tooltip = "";
 
 	for k, name in pairs(CURRENCY_ORDER) do
@@ -289,7 +246,7 @@ function TitanPanelCurrencyButton_GetTooltipText()
 		local data = CURRENCY_DATA[name];
 		
 		-- label + amount
-		if (name == CURRENCY_SELECTED_NAME) then 
+		if (name == TitanGetVar(TITAN_CURRENCY_ID, "SelectedCurrency")) then 
 			-- highlight selected
 			line = line..Highlight(name).."--".."\t"..Highlight(comma(data.qty));
 		else
@@ -341,257 +298,57 @@ end
 -- WHEN: Titan Panel looks for this fn - "TitanPanelRightClickMenu_Prepare<id>Menu()"
 -- *******************************************************************************************
 function TitanPanelRightClickMenu_PrepareCurrencyMenu()
-	pp(">>>TitanPanelRightClickMenu_PrepareCurrencyMenu()");
+	--pp(">>>TitanPanelRightClickMenu_PrepareCurrencyMenu()");
 	
-	TitanPanelRightClickMenu_AddTitle(TITAN_CURRENCY_MENU_TEXT, _G["LIB_UIDROPDOWNMENU_MENU_LEVEL"]);
+	-- main currency selector
+	TitanPanelRightClickMenu_AddTitle("Select Main");
+	for k, name in pairs(CURRENCY_ORDER) do
+		info = {};
+		info.text = CURRENCY_DATA[name].texture.." "..name;
+		info.checked = (TitanGetVar(TITAN_CURRENCY_ID, "SelectedCurrency") == name);
+		info.func = function()
+			--pp("> button pushed: >"..name.."<");
+			TitanSetVar(TITAN_CURRENCY_ID, "SelectedCurrency", name);
+			TitanPanelButton_UpdateButton(TITAN_CURRENCY_ID);
+			TitanPanelCurrencyButton_UpdateButtonText();
+		end
+		Lib_UIDropDownMenu_AddButton(info);
+	end
 
-	--TitanPanelRightClickMenu_AddSpacer();
-
-	TitanPanelRightClickMenu_AddToggleVar("text to show", TITAN_CURRENCY_ID, "temp_var_name", nil, _G["LIB_UIDROPDOWNMENU_MENU_LEVEL"]);
 	
-	
+	-- -- as nested menu
 	-- -- Level 2
-	-- if _G["LIB_UIDROPDOWNMENU_MENU_LEVEL"] == 2 then
-		-- if _G["LIB_UIDROPDOWNMENU_MENU_VALUE"] == "CoordFormat" then
-			-- TitanPanelRightClickMenu_AddTitle(L["TITAN_LOCATION_FORMAT_COORD_LABEL"], _G["LIB_UIDROPDOWNMENU_MENU_LEVEL"]);
-			-- info = {};
-			-- info.text = L["TITAN_LOCATION_FORMAT_LABEL"];
-			-- info.func = function()
-				-- TitanSetVar(TITAN_LOCATION_ID, "CoordsFormat1", 1);
-				-- TitanSetVar(TITAN_LOCATION_ID, "CoordsFormat2", nil);
-				-- TitanSetVar(TITAN_LOCATION_ID, "CoordsFormat3", nil);
-				-- TitanPanelButton_UpdateButton(TITAN_LOCATION_ID);
+	-- if ( _G["LIB_UIDROPDOWNMENU_MENU_LEVEL"] == 2 ) then
+		-- if ( _G["LIB_UIDROPDOWNMENU_MENU_VALUE"] == "SelectedCurrency" ) then
+			-- --TitanPanelRightClickMenu_AddTitle(LB["TITAN_CURRENCY_FORMAT_COORD_LABEL"], _G["LIB_UIDROPDOWNMENU_MENU_LEVEL"]);
+			-- TitanPanelRightClickMenu_AddTitle("Primary", _G["LIB_UIDROPDOWNMENU_MENU_LEVEL"]);
+			-- for k, name in pairs(CURRENCY_ORDER) do
+				-- info = {};
+				-- info.text = CURRENCY_DATA[name].texture.." "..name;
+				-- info.checked = (TitanGetVar(TITAN_CURRENCY_ID, "SelectedCurrency") == name);
+				-- info.func = function()
+					-- pp("> button pushed: >"..name.."<");
+					-- TitanSetVar(TITAN_CURRENCY_ID, "SelectedCurrency", name);
+					-- TitanPanelButton_UpdateButton(TITAN_CURRENCY_ID);
+					-- TitanPanelCurrencyButton_UpdateButtonText();
+				-- end
+				-- Lib_UIDropDownMenu_AddButton(info, _G["LIB_UIDROPDOWNMENU_MENU_LEVEL"]);
 			-- end
-			-- info.checked = TitanGetVar(TITAN_LOCATION_ID, "CoordsFormat1");
-			-- Lib_UIDropDownMenu_AddButton(info, _G["LIB_UIDROPDOWNMENU_MENU_LEVEL"]);
-
-			-- info = {};
-			-- info.text = L["TITAN_LOCATION_FORMAT2_LABEL"];
-			-- info.func = function()
-				-- TitanSetVar(TITAN_LOCATION_ID, "CoordsFormat1", nil);
-				-- TitanSetVar(TITAN_LOCATION_ID, "CoordsFormat2", 1);
-				-- TitanSetVar(TITAN_LOCATION_ID, "CoordsFormat3", nil);
-				-- TitanPanelButton_UpdateButton(TITAN_LOCATION_ID);
-			-- end
-			-- info.checked = TitanGetVar(TITAN_LOCATION_ID, "CoordsFormat2");
-			-- Lib_UIDropDownMenu_AddButton(info, _G["LIB_UIDROPDOWNMENU_MENU_LEVEL"]);
-
-			-- info = {};
-			-- info.text = L["TITAN_LOCATION_FORMAT3_LABEL"];
-			-- info.func = function()
-				-- TitanSetVar(TITAN_LOCATION_ID, "CoordsFormat1", nil);
-				-- TitanSetVar(TITAN_LOCATION_ID, "CoordsFormat2", nil);
-				-- TitanSetVar(TITAN_LOCATION_ID, "CoordsFormat3", 1);
-				-- TitanPanelButton_UpdateButton(TITAN_LOCATION_ID);
-			-- end
-			-- info.checked = TitanGetVar(TITAN_LOCATION_ID, "CoordsFormat3");
-			-- Lib_UIDropDownMenu_AddButton(info, _G["LIB_UIDROPDOWNMENU_MENU_LEVEL"]);
 		-- end
 		-- return
 	-- end
-	
-	
 	-- -- Level 1
 	-- info = {};
 	-- info.notCheckable = true
-	-- info.text = L["TITAN_LOCATION_FORMAT_COORD_LABEL"];
-	-- info.value = "CoordFormat"
+	-- --info.text = L["TITAN_CURRENCY_FORMAT_COORD_LABEL"];
+	-- info.text = "Main Display";
+	-- info.value = "SelectedCurrency"
 	-- info.hasArrow = 1;
 	-- Lib_UIDropDownMenu_AddButton(info);
 
 	CURRENCY_MENU_PREPARED = true;
 end
-	-- if LIB_UIDROPDOWNMENU_MENU_LEVEL == 1 then
-		-- -- Menu title
-		-- TitanPanelRightClickMenu_AddTitle(L["TITAN_GOLD_ITEMNAME"]);
 
-		-- -- Function to toggle button gold view
-		-- if TitanGetVar(TITAN_GOLD_ID, "ViewAll") then
-			-- TitanPanelRightClickMenu_AddCommand(L["TITAN_GOLD_TOGGLE_PLAYER_TEXT"], TITAN_GOLD_ID,"TitanPanelGoldButton_Toggle");
-		-- else
-			-- TitanPanelRightClickMenu_AddCommand(L["TITAN_GOLD_TOGGLE_ALL_TEXT"], TITAN_GOLD_ID,"TitanPanelGoldButton_Toggle");
-		-- end
-
-		-- -- Function to toggle display sort
-		-- if TitanGetVar(TITAN_GOLD_ID, "SortByName") then
-			-- TitanPanelRightClickMenu_AddCommand(L["TITAN_GOLD_TOGGLE_SORT_GOLD"], TITAN_GOLD_ID,"TitanPanelGoldSort_Toggle");
-		-- else
-			-- TitanPanelRightClickMenu_AddCommand(L["TITAN_GOLD_TOGGLE_SORT_NAME"], TITAN_GOLD_ID,"TitanPanelGoldSort_Toggle");
-		-- end
-
-		-- -- Function to toggle gold per hour sort
-		-- if TitanGetVar(TITAN_GOLD_ID, "DisplayGoldPerHour") then
-			-- TitanPanelRightClickMenu_AddCommand(L["TITAN_GOLD_TOGGLE_GPH_HIDE"], TITAN_GOLD_ID,"TitanPanelGoldGPH_Toggle");
-		-- else
-			-- TitanPanelRightClickMenu_AddCommand(L["TITAN_GOLD_TOGGLE_GPH_SHOW"], TITAN_GOLD_ID,"TitanPanelGoldGPH_Toggle");
-		-- end
-
-		-- -- A blank line in the menu
-		-- TitanPanelRightClickMenu_AddSpacer();
-
-		-- local info = {};
-		-- info.text = L["TITAN_GOLD_COIN_NONE"];
-		-- info.checked = TitanGetVar(TITAN_GOLD_ID, "ShowCoinNone");
-		-- info.func = function()
-			-- ShowProperLabels("ShowCoinNone")
-		-- end
-		-- Lib_UIDropDownMenu_AddButton(info, _G["LIB_UIDROPDOWNMENU_MENU_LEVEL"]);
-		-- local info = {};
-		-- info.text = L["TITAN_GOLD_COIN_LABELS"];
-		-- info.checked = TitanGetVar(TITAN_GOLD_ID, "ShowCoinLabels");
-		-- info.func = function()
-			-- ShowProperLabels("ShowCoinLabels")
-		-- end
-		-- Lib_UIDropDownMenu_AddButton(info, _G["LIB_UIDROPDOWNMENU_MENU_LEVEL"]);
-		-- local info = {};
-		-- info.text = L["TITAN_GOLD_COIN_ICONS"];
-		-- info.checked = TitanGetVar(TITAN_GOLD_ID, "ShowCoinIcons");
-		-- info.func = function()
-			-- ShowProperLabels("ShowCoinIcons")
-		-- end
-		-- Lib_UIDropDownMenu_AddButton(info, _G["LIB_UIDROPDOWNMENU_MENU_LEVEL"]);
-
-		-- TitanPanelRightClickMenu_AddSpacer();
-
-		-- local info = {};
-		-- info.text = L["TITAN_USE_COMMA"];
-		-- info.checked = TitanGetVar(TITAN_GOLD_ID, "UseSeperatorComma");
-		-- info.func = function()
-			-- Seperator("UseSeperatorComma")
-		-- end
-		-- Lib_UIDropDownMenu_AddButton(info, _G["LIB_UIDROPDOWNMENU_MENU_LEVEL"]);
-		-- local info = {};
-		-- info.text = L["TITAN_USE_PERIOD"];
-		-- info.checked = TitanGetVar(TITAN_GOLD_ID, "UseSeperatorPeriod");
-		-- info.func = function()
-			-- Seperator("UseSeperatorPeriod")
-		-- end
-		-- Lib_UIDropDownMenu_AddButton(info, _G["LIB_UIDROPDOWNMENU_MENU_LEVEL"]);
-
-		-- TitanPanelRightClickMenu_AddSpacer();
-
-		-- local info = {};
-		-- info.text = L["TITAN_GOLD_MERGE"];
-		-- info.checked = TitanGetVar(TITAN_GOLD_ID, "MergeServers");
-		-- info.func = function()
-			-- Merger("MergeServers")
-		-- end
-		-- Lib_UIDropDownMenu_AddButton(info, _G["LIB_UIDROPDOWNMENU_MENU_LEVEL"]);
-		-- local info = {};
-		-- info.text = L["TITAN_GOLD_SEPARATE"];
-		-- info.checked = TitanGetVar(TITAN_GOLD_ID, "SeparateServers");
-		-- info.func = function()
-			-- Merger("SeparateServers")
-		-- end
-		-- Lib_UIDropDownMenu_AddButton(info, _G["LIB_UIDROPDOWNMENU_MENU_LEVEL"]);
-
-		-- TitanPanelRightClickMenu_AddSpacer();
-
-		-- info = {};
-		-- info.text = L["TITAN_GOLD_ONLY"];
-		-- info.checked = TitanGetVar(TITAN_GOLD_ID, "ShowGoldOnly");
-		-- info.func = function()
-			-- TitanToggleVar(TITAN_GOLD_ID, "ShowGoldOnly");
-			-- TitanPanelButton_UpdateButton(TITAN_GOLD_ID);
-		-- end
-		-- Lib_UIDropDownMenu_AddButton(info, _G["LIB_UIDROPDOWNMENU_MENU_LEVEL"]);
-
-		-- -- A blank line in the menu
-		-- TitanPanelRightClickMenu_AddSpacer();
-
-		-- -- Show toon
-		-- info = {};
-		-- info.notCheckable = true
-		-- info.text = L["TITAN_GOLD_SHOW_PLAYER"];
-		-- info.value = "ToonShow";
-		-- info.hasArrow = 1;
-		-- Lib_UIDropDownMenu_AddButton(info);
-
-		-- -- Delete toon
-		-- info = {};
-		-- info.notCheckable = true
-		-- info.text = L["TITAN_GOLD_DELETE_PLAYER"];
-		-- info.value = "ToonDelete";
-		-- info.hasArrow = 1;
-		-- Lib_UIDropDownMenu_AddButton(info);
-
-		-- -- A blank line in the menu
-		-- TitanPanelRightClickMenu_AddSpacer();
-
-		-- -- Function to clear the enter database
-		-- info = {};
-		-- info.notCheckable = true
-		-- info.text = L["TITAN_GOLD_CLEAR_DATA_TEXT"];
-		-- info.func = TitanGold_ClearDB;
-		-- Lib_UIDropDownMenu_AddButton(info);
-
-		-- TitanPanelRightClickMenu_AddCommand(L["TITAN_GOLD_RESET_SESS_TEXT"], TITAN_GOLD_ID, "TitanPanelGoldButton_ResetSession");
-
-		-- -- A blank line in the menu
-		-- TitanPanelRightClickMenu_AddSpacer();
-		-- TitanPanelRightClickMenu_AddToggleIcon(TITAN_GOLD_ID);
-		-- TitanPanelRightClickMenu_AddToggleLabelText(TITAN_GOLD_ID);
-		-- TitanPanelRightClickMenu_AddToggleColoredText(TITAN_GOLD_ID);
-		-- TitanPanelRightClickMenu_AddSpacer();
-
-		-- -- Generic function to toggle and hide
-		-- TitanPanelRightClickMenu_AddCommand(L["TITAN_PANEL_MENU_HIDE"], TITAN_GOLD_ID, TITAN_PANEL_MENU_FUNC_HIDE);
-	-- end
-
-	-- if LIB_UIDROPDOWNMENU_MENU_LEVEL == 2 and LIB_UIDROPDOWNMENU_MENU_VALUE == "ToonDelete" then
-		-- local info = {};
-		-- info.notCheckable = true
-		-- info.text = L["TITAN_GOLD_FACTION_PLAYER_ALLY"];
-		-- info.value = "DeleteAlliance";
-		-- info.hasArrow = 1;
-		-- Lib_UIDropDownMenu_AddButton(info, LIB_UIDROPDOWNMENU_MENU_LEVEL);
-
-		-- info.text = L["TITAN_GOLD_FACTION_PLAYER_HORDE"];
-		-- info.value = "DeleteHorde";
-		-- info.hasArrow = 1;
-		-- Lib_UIDropDownMenu_AddButton(info, LIB_UIDROPDOWNMENU_MENU_LEVEL);
-	-- elseif LIB_UIDROPDOWNMENU_MENU_LEVEL == 2 and LIB_UIDROPDOWNMENU_MENU_VALUE == "ToonShow" then
-		-- local info = {};
-		-- info.notCheckable = true
-		-- info.text = L["TITAN_GOLD_FACTION_PLAYER_ALLY"];
-		-- info.value = "ShowAlliance";
-		-- info.hasArrow = 1;
-		-- Lib_UIDropDownMenu_AddButton(info, LIB_UIDROPDOWNMENU_MENU_LEVEL);
-
-		-- info.text = L["TITAN_GOLD_FACTION_PLAYER_HORDE"];
-		-- info.value = "ShowHorde";
-		-- info.hasArrow = 1;
-		-- Lib_UIDropDownMenu_AddButton(info, LIB_UIDROPDOWNMENU_MENU_LEVEL);
-	-- end
-		
-	-- if LIB_UIDROPDOWNMENU_MENU_LEVEL == 3 and LIB_UIDROPDOWNMENU_MENU_VALUE == "DeleteAlliance" then
-		-- DeleteMenuButtons("Alliance")
-	-- elseif LIB_UIDROPDOWNMENU_MENU_LEVEL == 3 and LIB_UIDROPDOWNMENU_MENU_VALUE == "DeleteHorde" then
-		-- DeleteMenuButtons("Horde")
-	-- elseif LIB_UIDROPDOWNMENU_MENU_LEVEL == 3 and LIB_UIDROPDOWNMENU_MENU_VALUE == "ShowAlliance" then
-		-- ShowMenuButtons("Alliance")
-	-- elseif LIB_UIDROPDOWNMENU_MENU_LEVEL == 3 and LIB_UIDROPDOWNMENU_MENU_VALUE == "ShowHorde" then
-		-- ShowMenuButtons("Horde")
-	-- end
--- end
-
-
-    -- returns relative coords of cropped section (0-1)
-	-- e.g. <0,0>, <0.25,0>, <1,0>, <1,0.25>
-	-- Texture:GetTexCoord()
-	-- local tGold = _G["TitanPanelCurrencyButtonGoldButton"]:GetNormalTexture();
-	-- local a, b, c, d, e, f, g, h = tGold:GetTexCoord();
-	-- local ret = "";
-	-- ret	= ">>> gold texture coords:";
-	-- ret = ret.." ";
-	-- ret = ret.."<"..a..","..b..">";
-	-- ret = ret.." ";
-	-- ret = ret.."<"..c..","..d..">";
-	-- ret = ret.." ";
-	-- ret = ret.."<"..e..","..f..">";
-	-- ret = ret.." ";
-	-- ret = ret.."<"..g..","..h..">";
-	-- pp(ret);
 
 	
 	
