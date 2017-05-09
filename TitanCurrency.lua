@@ -201,7 +201,7 @@ end
 -- DESC: Refreshes currency amounts and info from system.  Populates CURRENCY_DATA{}
 -- *******************************************************************************************
 function TitanPanelCurrencyButton_GetCurrencyData()
-	--pp(">>>CurrencyButton_FetchCurrencyQtys()");
+	--pp(">>>CurrencyButton_GetCurrencyData()");
 	local data = {};
 	
 	-- for gold
@@ -215,15 +215,28 @@ function TitanPanelCurrencyButton_GetCurrencyData()
 	-- for other currencies
 	for i=1, GetCurrencyListSize() do 
 		local name, isHeader, isExpanded, isUnused, isWatched, count, icon, maximum, hasWeeklyLimit, currentWeeklyAmount, unknown = GetCurrencyListInfo(i)
-		if (icon ~= nil and count > 0 and not CURRENCY_IGNORE[name]) then 
+		if (icon ~= nil and not CURRENCY_IGNORE[name]) then 
+			-- and count > 0
 			data = {};
 			data.name = name;
 			data.qty = count;
 			data.icon = icon;
 			data.texture = "|T"..data.icon..":14|t"
 			CURRENCY_DATA[data.name] = data;
+			--pp("  "..data.texture.." "..count.." "..name);
 		end
 	end
+end
+
+function TitanPanelCurrencyButton_IsIncluded(name, icon, count, isUnused)
+	if (isUnused) 
+	or (icon == nil) 
+	or (CURRENCY_IGNORE[name]) 
+	then
+		return false;
+	end
+	
+	return true;
 end
 
 function Highlight(text)
@@ -245,25 +258,30 @@ function TitanPanelCurrencyButton_GetTooltipText()
 		local line = "";
 		local data = CURRENCY_DATA[name];
 		
-		-- label + amount
-		if (name == TitanGetVar(TITAN_CURRENCY_ID, "SelectedCurrency")) then 
-			-- highlight selected
-			line = line..Highlight(name).."--".."\t"..Highlight(comma(data.qty));
+		if (data) then
+			-- label + amount
+			if (name == TitanGetVar(TITAN_CURRENCY_ID, "SelectedCurrency")) then 
+				-- highlight selected
+				line = line..Highlight(name).."--".."\t"..Highlight(comma(data.qty));
+			else
+				line = line..name.."--".."\t"..comma(data.qty);
+			end
+			-- icon
+			--if (data.icon ~= nil) then 
+			if (data.icon) then 
+				line = line..data.texture;
+			else pp(">> GetTooltipText(): nil icon for >"..name.."< !!!");
+			end
+			
+			tooltip = tooltip..line.."\n";
 		else
-			line = line..name.."--".."\t"..comma(data.qty);
+			--pp("  deleting - "..name)
+			CURRENCY_ORDER[name] = nil;
 		end
- 		-- icon
-		if data.icon~=nil then 
-			line = line..data.texture;
-		else pp(">> GetTooltipText(): nil icon for >"..name.."< !!!");
-		end
-		
-		tooltip = tooltip..line.."\n";
 	end
 
 	return tooltip;    
 end
-
 -- |T escape code
 -- |T<texture path>:displayHeight:displayWidth:displayOffX:displayOffY[:origX:origY:cropX1:cropX2:cropY1:cropY2]|t
 
@@ -295,7 +313,7 @@ end
 -- *******************************************************************************************
 -- NAME: TitanPanelRightClickMenu_PrepareCurrencyMenu
 -- DESC: Builds the right click config menu
--- WHEN: Titan Panel looks for this fn - "TitanPanelRightClickMenu_Prepare<id>Menu()"
+-- WHEN: Titan Panel looks for this fn by name - "TitanPanelRightClickMenu_Prepare<id>Menu()"
 -- *******************************************************************************************
 function TitanPanelRightClickMenu_PrepareCurrencyMenu()
 	--pp(">>>TitanPanelRightClickMenu_PrepareCurrencyMenu()");
@@ -303,16 +321,20 @@ function TitanPanelRightClickMenu_PrepareCurrencyMenu()
 	-- main currency selector
 	TitanPanelRightClickMenu_AddTitle("Select Main");
 	for k, name in pairs(CURRENCY_ORDER) do
-		info = {};
-		info.text = CURRENCY_DATA[name].texture.." "..name;
-		info.checked = (TitanGetVar(TITAN_CURRENCY_ID, "SelectedCurrency") == name);
-		info.func = function()
-			--pp("> button pushed: >"..name.."<");
-			TitanSetVar(TITAN_CURRENCY_ID, "SelectedCurrency", name);
-			TitanPanelButton_UpdateButton(TITAN_CURRENCY_ID);
-			TitanPanelCurrencyButton_UpdateButtonText();
+		if (CURRENCY_DATA[name] ~= nil) then 
+			--pp(">>>TitanPanelRightClickMenu_PrepareCurrencyMenu() - "..name);
+			info = {};
+			info.text = name;
+			info.text = CURRENCY_DATA[name].texture.." "..name;
+			info.checked = (TitanGetVar(TITAN_CURRENCY_ID, "SelectedCurrency") == name);
+			info.func = function()
+				--pp("> button pushed: >"..name.."<");
+				TitanSetVar(TITAN_CURRENCY_ID, "SelectedCurrency", name);
+				TitanPanelButton_UpdateButton(TITAN_CURRENCY_ID);
+				TitanPanelCurrencyButton_UpdateButtonText();
+			end
+			Lib_UIDropDownMenu_AddButton(info);
 		end
-		Lib_UIDropDownMenu_AddButton(info);
 	end
 
 	
