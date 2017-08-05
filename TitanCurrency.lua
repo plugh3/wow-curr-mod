@@ -161,7 +161,8 @@ function TitanPanelCurrencyButton_UpdateButtonText()
 		
 		-- update button
 		local data = CURRENCY_DATA[selected];
-		_G["TitanPanelCurrencyButtonGoldButton"]:SetText(data.qty);	
+		local text = comma(data.qty).." ";
+		_G["TitanPanelCurrencyButtonGoldButton"]:SetText(text);	
 		_G["TitanPanelCurrencyButtonGoldButton"]:SetNormalTexture(data.icon);
 
 		-- retrofit MoneyFrame
@@ -240,7 +241,7 @@ function TitanPanelCurrencyButton_IsIncluded(name, icon, count, isUnused)
 end
 
 function Highlight(text)
-	local color = "FF00FF00";
+	local color = "EFEF0000";
 	return "|c"..color..text.."|r";
 end
 
@@ -254,6 +255,7 @@ function TitanPanelCurrencyButton_GetTooltipText()
 	--pp(">>>CurrencyButton_GetTooltipText()");
 	local tooltip = "";
 
+	-- one line for each currency
 	for k, name in pairs(CURRENCY_ORDER) do
 		local line = "";
 		local data = CURRENCY_DATA[name];
@@ -262,7 +264,8 @@ function TitanPanelCurrencyButton_GetTooltipText()
 			-- label + amount
 			if (name == TitanGetVar(TITAN_CURRENCY_ID, "SelectedCurrency")) then 
 				-- highlight selected
-				line = line..Highlight(name).."--".."\t"..Highlight(comma(data.qty));
+				--line = line..Highlight(name).."--".."\t"..Highlight(comma(data.qty));
+				line = line..name.."--".."\t"..comma(data.qty);
 			else
 				line = line..name.."--".."\t"..comma(data.qty);
 			end
@@ -333,7 +336,7 @@ function TitanPanelRightClickMenu_PrepareCurrencyMenu()
 				TitanPanelButton_UpdateButton(TITAN_CURRENCY_ID);
 				TitanPanelCurrencyButton_UpdateButtonText();
 			end
-			Lib_UIDropDownMenu_AddButton(info);
+			L_UIDropDownMenu_AddButton(info);
 		end
 	end
 
